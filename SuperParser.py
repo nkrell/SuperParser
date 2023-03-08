@@ -48,6 +48,8 @@ def main():
 	targetFolder = input()
 	fileRename(chartName, targetFolder)
 
+#======================================================NOTE=======================: Finished with renamer, need to make geneTree method work
+
 
 #method for renaming files
 #only works with tab-delimited name charts in the format name [tab] accession
@@ -59,8 +61,11 @@ def fileRename(chartName, targetFolder):
 		for line in fh:
 			line = line.strip()
 			line = line.split("\t")
-			print(line)
-			nameChart.append(tuple([line[0], line[1]]))
+			#remove space from binomial name
+			name = line[0]
+			name = name.split(" ")
+			name = '_'.join(name)
+			nameChart.append(tuple([name, line[1]]))
 	#move into target folder
 	os.chdir(targetFolder)
 	for file in os.listdir():
