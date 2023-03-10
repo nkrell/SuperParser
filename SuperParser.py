@@ -3,53 +3,136 @@ import subprocess
 import time
 
 def main():
-	# while True:
-	# 		try:
-	# 			print("Enter name of folder containing genomes for parsing: ")
-	# 			targetFolder = input()
-	# 			if targetFolder not in os.listdir():
-	# 				raise ValueError
-	# 			else:
-	# 				pass
-	# 		except ValueError:
-	# 			print("Folder not found.")
-	# 		except FileNotFoundError:
-	# 			print("Folder not found.")
-	# 		else:
-	# 			break
-	# 	#navigate into target folder
-	# os.chdir(targetFolder)
+	#list to hold all data that will be read it
+	genomeFileList = list()
+# 	   _____                                 _____                                     
+ #  / ____|                               |  __ \                                    
+ # | (___    _   _   _ __     ___   _ __  | |__) |   __ _   _ __   ___    ___   _ __ 
+ #  \___ \  | | | | | '_ \   / _ \ | '__| |  ___/   / _` | | '__| / __|  / _ \ | '__|
+ #  ____) | | |_| | | |_) | |  __/ | |    | |      | (_| | | |    \__ \ |  __/ | |   
+ # |_____/   \__,_| | .__/   \___| |_|    |_|       \__,_| |_|    |___/  \___| |_|   
+ #                  | |                                                              
+ #                  |_|                                                              
+	print('\033[1;92m')
+	print("   _____                                 _____                                     ")
+	print("  / ____|                               |  __ \                                    ")
+	print(" | (___    _   _   _ __     ___   _ __  | |__) |   __ _   _ __   ___    ___   _ __ ")
+	print("  \___ \  | | | | | '_ \   / _ \ | '__| |  ___/   / _` | | '__| / __|  / _ \ | '__|")
+	print("  ____) | | |_| | | |_) | |  __/ | |    | |      | (_| | | |    \__ \ |  __/ | |   ")
+	print(" |_____/   \__,_| | .__/   \___| |_|    |_|       \__,_| |_|    |___/  \___| |_|   ")
+	print("                  | |                                                              ")
+	print("                  |_|                                                              ")
+	print("                                                              By Nicholas Krell")
+	print("                                                              Version 1.0")
+	print('\033[0;39m')
+	print('\n')
 
-	#FOR DEBUGGING----------------------------------------------------------------------------
-	# GeneFileList = list()
-	# for file in os.listdir():
-	# 	currentFile = GeneFile(file)
-	# 	GeneFileList.append(currentFile)
+	while True:
+		print('\n')
+		print("1) Read in OR pipeline output files")
+		print("2) Clean read-in data")
+		print("3) Get gene types from cleaned data")
+		print("4) Output raw FASTA entries")
+		print("5) Output cleaned Genes")
+		print("6) Output gene tpyes")
+		print("Q) Quit program")
 
-	# for file in GeneFileList:
-	# 	file.readFile()
+		print("Make a selection: ")
+		userInput = input()
+		print('\n')
+		if userInput == "Q" or userInput == "q":
+			exit()
 
-	# for file in GeneFileList:
-	# 	file.printFastaEntries()
-	# 	file.normalClean()
-	# 	file.printCleanedGenes()
-	# 	file.findGeneTypes()
-	# 	file.printGeneTypes()
-	# 	testList = file.geneTreeFormat()
-	# 	for entry in testList:
-	# 		print(entry[0])
-	# 		print(entry[1])
+		#Read in OR pipeline output files
+		elif userInput == "1": 
+			targetFolder = folderQuery()
+			#navigate into target folder
+			os.chdir(targetFolder) #IN 1<-------
+			for file in os.listdir():
+				if file.endswith(".fna") or file.endswith(".fasta"):
+					#temporary variable to hold data before it is added to main list
+					tempGeneFile = GeneFile(file)
+					print("Reading file " + file)
+					tempGeneFile.readFile()
+					genomeFileList.append(tempGeneFile)
+					print("File read")
+					#dump temporary variable memory
+					tempGeneFile = ""
+			print("Done")
 
-	#os.chdir(os.path.dirname(os.getcwd()))
+		#Clean read-in data
+		elif userInput == "2": 
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			else:
+				for entry in genomeFileList:
+					print("Cleaning " + entry.getFileName())
+					entry.normalClean()
+					print(entry.getFileName() + " cleaned")
 
-	print("Enter name of chart: ")
-	chartName = input()
-	print("Enter name of folder: ")
-	targetFolder = input()
-	fileRename(chartName, targetFolder)
+		#Get gene types from cleaned data
+		elif userInput == "3": 
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			else:
+				for entry in genomeFileList:
+					print("Getting gene types from " + entry.getFileName())
+					entry.findGeneTypes()
+					print(entry.getFileName() + " done")
+
+		#Output raw FASTA entries
+		elif userInput == "4": 
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			if genomeFileList[0].fastaEntries == None:
+				print("Raw fasta entries have been cleaned")
+				print("Use '5) Output cleaned Genes' instead")
+			else:
+				for entry in genomeFileList:
+					entry.printFastaEntries()
+
+		#Output cleaned genes		
+		elif userInput == "5": 
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			else:
+				for entry in genomeFileList:
+					entry.printCleanedGenes()
+
+		#Output gene types
+		elif userInput == "6":
+			pass
+
+		#For bad input
+		else:
+			print('\n')
+			print("Invalid input")
+
+
+
+
+
+
 
 #======================================================NOTE=======================: Finished with renamer, need to make geneTree method work
-
+def folderQuery():
+	#variable to hold folder name
+	targetFolder = ""
+	while True:
+		try:
+			print("Enter name of folder containing genomes for parsing: ")
+			targetFolder = input()
+			if targetFolder not in os.listdir():
+				raise ValueError
+			else:
+				pass
+		except ValueError:
+			print("Folder not found.")
+		except FileNotFoundError:
+			print("Folder not found.")
+		else:
+			break
+	return(targetFolder)
 
 #method for renaming files
 #only works with tab-delimited name charts in the format name [tab] accession
@@ -80,7 +163,10 @@ def fileRename(chartName, targetFolder):
 
 #method for writing output files that can be used to make a gene tree
 def geneTree():
-	pass
+	#list to hold all the genes
+	allGenesList = list()
+	#list to hold all the possible type
+	allTypesList = list()
 
 
 class GeneFile:
@@ -223,6 +309,14 @@ class GeneFile:
 	#class method that returns all the cleaned genes
 	def getGenes(self):
 		return(self.cleanedGenes)
+
+	#class method for retruning the name of the file
+	def getFileName(self):
+		return(self.fileName)
+
+	#class method for retruning the fasta entries
+	def getFastaEntries(self):
+		return(self.fastaEntries)
 
 	#class method for refromating and returning genes to allow for gene tree friendly output
 	def geneTreeFormat(self):
