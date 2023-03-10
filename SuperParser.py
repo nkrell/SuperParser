@@ -34,7 +34,9 @@ def main():
 		print("3) Get gene types from cleaned data")
 		print("4) Output raw FASTA entries")
 		print("5) Output cleaned Genes")
-		print("6) Output gene tpyes")
+		print("6) Output gene types")
+		print("T) Output files that can be used to make a gene tree")
+		print("R) Rename genome files using name chart")
 		print("Q) Quit program")
 
 		print("Make a selection: ")
@@ -45,9 +47,9 @@ def main():
 
 		#Read in OR pipeline output files
 		elif userInput == "1": 
-			targetFolder = folderQuery()
+			targetFolder = folderQuery("parsing")
 			#navigate into target folder
-			os.chdir(targetFolder) #IN 1<-------
+			os.chdir(targetFolder) #IN 1 <-------
 			for file in os.listdir():
 				if file.endswith(".fna") or file.endswith(".fasta"):
 					#temporary variable to hold data before it is added to main list
@@ -59,6 +61,8 @@ def main():
 					#dump temporary variable memory
 					tempGeneFile = ""
 			print("Done")
+			#navigate back to starting folder
+			os.chdir(os.path.dirname(os.getcwd())) #OUT 1 <------
 
 		#Clean read-in data
 		elif userInput == "2": 
@@ -101,7 +105,65 @@ def main():
 
 		#Output gene types
 		elif userInput == "6":
-			pass
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			test = genomeFileList[0].getGeneTypes()
+			if len(test) == 0:
+				print("Gene type list has not been generated")
+				print("Use '3) Get gene types from cleaned data' first")
+			else:
+				for entry in genomeFileList:
+					entry.printGeneTypes()
+
+		#Output files that can be used to make a gene tree	
+		elif userInput == "T":
+			targetFolder = ""
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			if genomeFileList[0].fastaEntries != None:
+				print("Raw entries must be cleaned before gene tree files can be generated")
+				print("Use '2) Clean read-in data' first")
+			test = genomeFileList[0].getGeneTypes()
+			if len(test) == 0:
+				print("Gene type list has not been generated")
+				print("Use '3) Get gene types from cleaned data' first")
+			else:
+				while True:
+					print("Enter name for folder to hold gene tree files: ")
+					targetFolder = input()
+					if targetFolder in os.listdir():
+						print("A folder in your drectory already has that name")
+					else:
+						break
+
+				geneTree(genomeFileList, targetFolder)
+			
+		#Rename genome files using name chart
+		elif userInput == "R":
+			yesNo = ""
+			while True:
+				print("Is there a name chart in the directory with the format 'Name [Tab] Accession' ? (y/n)")
+				yesNo = input().upper()
+				if yesNo == "Y" or yesNo == "N":
+					break
+				else:
+					print("Invalid input")
+			while True:
+				print("Do the genome file names start with their accession number? (y/n)")
+				yesNo = input().upper()
+				if yesNo == "Y" or yesNo == "N":
+					break
+				else:
+					print("Invalid input.")
+			targetFolder = folderQuery("renaming")
+			while True:
+				print("Enter name of name chart: ")
+				yesNo = input()
+				if yesNo in os.listdir():
+					break
+				else:
+					print("File not found")
+			fileRename(yesNo, targetFolder)
 
 		#For bad input
 		else:
@@ -115,23 +177,31 @@ def main():
 
 
 #======================================================NOTE=======================: Finished with renamer, need to make geneTree method work
-def folderQuery():
+def folderQuery(action):
 	#variable to hold folder name
 	targetFolder = ""
 	while True:
 		try:
-			print("Enter name of folder containing genomes for parsing: ")
+			print("Enter name of folder containing genomes for " + action + ": ")
 			targetFolder = input()
 			if targetFolder not in os.listdir():
 				raise ValueError
 			else:
 				pass
 		except ValueError:
-			print("Folder not found.")
+			print("Folder not found")
 		except FileNotFoundError:
-			print("Folder not found.")
+			print("Folder not found")
 		else:
 			break
+	#determine if the user would like the files renamed
+	gcaFlag = False
+	for fileName in os.listdir(targetFolder):
+		if fileName.startswith("GCA"):
+			gcaFlag = True
+	if gcaFlag == True:
+		print("It is reccomened that you rename the files first")
+		print("Resart the program and select 'R) Rename genome files using name chart' ")
 	return(targetFolder)
 
 #method for renaming files
@@ -162,11 +232,61 @@ def fileRename(chartName, targetFolder):
 	os.chdir(os.path.dirname(os.getcwd()))
 
 #method for writing output files that can be used to make a gene tree
-def geneTree():
-	#list to hold all the genes
-	allGenesList = list()
-	#list to hold all the possible type
+def geneTree(genomeFileList, targetFolder):
+	#list to hold all the possible types
 	allTypesList = list()
+	#make new folder and navigate into it
+	os.mkdir(targetFolder)
+	os.chdir(targetFolder) #IN 1 <------
+	#find all possible types first
+	for entry in genomeFileList:
+		for geneType in entry.getGeneTypes():
+			if geneType not in allTypesList:
+				allTypesList.append(geneType)
+
+	#create and populate a file for each gene type in allTypesList
+	for geneType in allTypesList:
+		#open new file named after the type of gene that will go into it
+		newFile = open(geneType + ".genetree.fasta", "w")
+		#write every gene of that type from every genome in genomeFileList
+		for entry in genomeFileList:
+			#check if file have been renamed
+			if entry.getFileName().startswith("GCA"):
+				gcaFlag = False
+			else:
+				gcaFlag = True
+			#parse accession number out of name of file
+			#temporary variable to hold accession number
+			accessNum = entry.getFileName()
+			accessNum = accessNum.split(".")
+			accessNum = accessNum[0] + "." + accessNum[1]
+			accessNum = accessNum.split("_GCA_")
+			accessNum = "GCA_" + accessNum[1]
+			#parse species name out of name of file
+			#temporary variable to hold species name
+			specName = entry.getFileName()
+			specName = specName.split("_")
+			specName = specName[0] + "_" + specName[1]
+			#go through every gene associated with that genomeFile
+			for gene in entry.getGenes():
+				#temporary variable to hold the type and status in the same format as in the geneType list
+				tempGeneType = gene[0] + "_" + gene[1]
+				#determine if the gene is of the type whose file is being written
+				if tempGeneType == geneType:
+					#write header
+					newFile.write(">" + specName + "_" + accessNum + "_" + tempGeneType)
+					newFile.write("\n")
+					#write sequence
+					newFile.write(gene[2])
+					newFile.write("\n")
+
+		#close file
+		newFile.close()
+	for geneType in allTypesList:
+		print(geneType)
+
+	#return to starting folder
+	os.chdir(os.path.dirname(os.getcwd())) #OUT 1 <------
 
 
 class GeneFile:
@@ -317,6 +437,10 @@ class GeneFile:
 	#class method for retruning the fasta entries
 	def getFastaEntries(self):
 		return(self.fastaEntries)
+
+	#class method for retruning gene types list
+	def getGeneTypes(self):
+		return(self.geneTypes)
 
 	#class method for refromating and returning genes to allow for gene tree friendly output
 	def geneTreeFormat(self):
