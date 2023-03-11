@@ -32,9 +32,11 @@ def main():
 		print("1) Read in OR pipeline output files")
 		print("2) Clean read-in data")
 		print("3) Get gene types from cleaned data")
-		print("4) Output raw FASTA entries")
-		print("5) Output cleaned Genes")
-		print("6) Output gene types")
+		print("4) Get gene counts")
+		print("5) Output raw FASTA entries")
+		print("6) Output cleaned Genes")
+		print("7) Output gene types")
+		print("8) Output gene counts")
 		print("T) Output files that can be used to make a gene tree")
 		print("R) Rename genome files using name chart")
 		print("Q) Quit program")
@@ -84,19 +86,37 @@ def main():
 					entry.findGeneTypes()
 					print(entry.getFileName() + " done")
 
+		#Get gene counts
+		elif userInput == "4":
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			if genomeFileList[0].fastaEntries != None:
+				print("Genes must be cleaned first")
+				print("Use '2) Clean read-in data' first")
+			test = genomeFileList[0].getGeneTypes()
+			if len(test) == 0:
+				print("Gene type list has not been generated")
+				print("Use '3) Get gene types from cleaned data' first")
+			else:
+				for entry in genomeFileList:
+					print("Getting gene counts from " + entry.getFileName())
+					entry.findGeneCounts()
+					print(entry.getFileName() + " done")
+
+
 		#Output raw FASTA entries
-		elif userInput == "4": 
+		elif userInput == "5": 
 			if len(genomeFileList) == 0:
 				print("No data has been read in")
 			if genomeFileList[0].fastaEntries == None:
 				print("Raw fasta entries have been cleaned")
-				print("Use '5) Output cleaned Genes' instead")
+				print("Use '6) Output cleaned Genes' instead")
 			else:
 				for entry in genomeFileList:
 					entry.printFastaEntries()
 
 		#Output cleaned genes		
-		elif userInput == "5": 
+		elif userInput == "6": 
 			if len(genomeFileList) == 0:
 				print("No data has been read in")
 			else:
@@ -104,7 +124,7 @@ def main():
 					entry.printCleanedGenes()
 
 		#Output gene types
-		elif userInput == "6":
+		elif userInput == "7":
 			if len(genomeFileList) == 0:
 				print("No data has been read in")
 			test = genomeFileList[0].getGeneTypes()
@@ -114,6 +134,21 @@ def main():
 			else:
 				for entry in genomeFileList:
 					entry.printGeneTypes()
+
+		#Output gene counts
+		elif userInput == "8":
+			test = genomeFileList[0].getGeneCounts()
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			if len(test) == 0:
+				print("Gene counts have not been generated yet")
+				print("Use '4) Get gene counts' first")
+			else:
+				for entry in genomeFileList:
+					entry.printGeneCounts()
+
+
+
 
 		#Output files that can be used to make a gene tree	
 		elif userInput == "T":
@@ -165,6 +200,10 @@ def main():
 					print("File not found")
 			fileRename(yesNo, targetFolder)
 
+		
+
+
+
 		#For bad input
 		else:
 			print('\n')
@@ -172,11 +211,6 @@ def main():
 
 
 
-
-
-
-
-#======================================================NOTE=======================: Finished with renamer, need to make geneTree method work
 def folderQuery(action):
 	#variable to hold folder name
 	targetFolder = ""
@@ -426,6 +460,15 @@ class GeneFile:
 				counter += 1
 			print("Total geneTypes: " + str(counter))
 
+	def printGeneCounts(self):
+		#check if geneCounts is empty
+		if len(self.geneCounts) == 0:
+			print("geneCounts in empty")
+		else:
+			#print all enties
+			for geneCount in self.geneCounts:
+				print(geneCount[0] + ": " + str(geneCount[1]))
+
 	#class method that returns all the cleaned genes
 	def getGenes(self):
 		return(self.cleanedGenes)
@@ -442,6 +485,10 @@ class GeneFile:
 	def getGeneTypes(self):
 		return(self.geneTypes)
 
+	#class method for returning gene counts list
+	def getGeneCounts(self):
+		return(self.geneCounts)
+
 	#class method for refromating and returning genes to allow for gene tree friendly output
 	def geneTreeFormat(self):
 		#make a list to hold the newly formated output
@@ -453,7 +500,20 @@ class GeneFile:
 			newGeneList.append(tuple([tempHeader, gene[2]]))
 		#return newly formated list
 		return(newGeneList)
-		
+
+	#class method for filling the geneCounts list
+	def findGeneCounts(self):
+		#get a count for each geneType
+		for geneType in self.geneTypes:
+			#temparary variable to count the genes
+			counter = 0
+			#go through each gene and tally up ho many belong to each type
+			for gene in self.cleanedGenes:
+				if (gene[0] + "_" + gene[1]) == geneType:
+					counter += 1
+			#add each count and genetype to the counts list
+			self.geneCounts.append(tuple([geneType, counter]))
+
 
 
 
