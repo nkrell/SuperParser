@@ -35,7 +35,6 @@ def main():
 		print("4) Output raw FASTA entries")
 		print("5) Output cleaned Genes")
 		print("6) Output gene types")
-		print("N) Run normal protocol automatically")
 		print("T) Output files that can be used to make a gene tree")
 		print("R) Rename genome files using name chart")
 		print("Q) Quit program")
@@ -141,144 +140,43 @@ def main():
 			
 		#Rename genome files using name chart
 		elif userInput == "R":
-			fileRename()
-
-		#Run normal protocol automatically
-		elif userInput == "N":
-			#variable to hold the speceis if needed
-			species = ""
-			targetFolder = folderQuery("parsing")
-			("Started normal protocol")
-			sameSpecies = yesNo("Are the genomes all from the same species? (y/n)")
-			if sameSpecies == True:
-				print("Input the species name in the form Genus_species: ")
-				species = input()
-			elif sameSpecies == False:
-				renameSpecies = yesNo("Would you like to rename the files to include their species names before parsing? (y/n)")
-				if renameSpecies == True:
-					fileRename()
-			print("Started parsing")
-			#navigate into target folder
-			os.chdir(targetFolder) #IN 1 <-------
-			for file in os.listdir():
-				if file.endswith(".fna") or file.endswith(".fasta"):
-					#temporary variable to hold data before it is added to main list
-					tempGeneFile = GeneFile(file)
-					print("Reading file " + file)
-					tempGeneFile.readFile()
-					#set species if needed
-					if species != "":
-						tempGeneFile.setSpecies(species)
-					elif len(file.split("_")) == 4:
-						species = file.split("_GCA_")
-						species = species[0]
-						tempGeneFile.setSpecies(species)
-					genomeFileList.append(tempGeneFile)
-					print("File read")
-					#dump temporary variable memory
-					tempGeneFile = ""
-			print("Done")
-			#navigate back to starting folder
-			os.chdir(os.path.dirname(os.getcwd())) #OUT 1 <------
-			print("Files read in: " + str(len(genomeFileList)))
-			for entry in genomeFileList:
-				print("File " + entry.getFileName() + " read in with " + str(len(entry.getFastaEntries())) + " genes")
-			print("Started gene cleaning")
-			#cleaning
-			for entry in genomeFileList:
-				print("Cleaning " + entry.getFileName())
-				entry.normalClean()
-				print(entry.getFileName() + " cleaned")
-			#get types
-			for entry in genomeFileList:
-				print("Getting gene types from " + entry.getFileName())
-				entry.findGeneTypes()
-				print(entry.getFileName() + " done")
-			print("Normal protocol done")
+			yesNo = ""
+			while True:
+				print("Is there a name chart in the directory with the format 'Name [Tab] Accession' ? (y/n)")
+				yesNo = input().upper()
+				if yesNo == "Y" or yesNo == "N":
+					break
+				else:
+					print("Invalid input")
+			while True:
+				print("Do the genome file names start with their accession number? (y/n)")
+				yesNo = input().upper()
+				if yesNo == "Y" or yesNo == "N":
+					break
+				else:
+					print("Invalid input.")
+			targetFolder = folderQuery("renaming")
+			while True:
+				print("Enter name of name chart: ")
+				yesNo = input()
+				if yesNo in os.listdir():
+					break
+				else:
+					print("File not found")
+			fileRename(yesNo, targetFolder)
 
 		#For bad input
 		else:
 			print('\n')
 			print("Invalid input")
 
-#method for renaming files
-#only works with tab-delimited name charts in the format name [tab] accession
-def fileRename():
-	def yesNo(question):
-		#variable to hold user input
-		userInput = ""
-		while True:
-			print(question)
-			userInput = input().upper()
-			if userInput == "Y" or userInput == "N":
-				break
-			else:
-				print("Invalid input")
-		if userInput == "Y":
-			return(True)
-		elif userInput == "N":
-			return(False)
-			
-	#variables to hold user input
-	chartName = ""
-	targetFolder = ""
-	#boolean to determine wether the renaming procedure can be run
-	canRename = True
-	canRename = yesNo("Is there a name chart in the directory with the format 'Name [Tab] Accession' ? (y/n)")
-	canRename = yesNo("Do the genome file names start with their accession number? (y/n)")
-	if canRename == True:
-		targetFolder = folderQuery("renaming")
-		while True:
-			print("Enter name of name chart: ")
-			yesNo = input()
-			if yesNo in os.listdir():
-				break
-			else:
-				print("File not found")
-		#list to hold the names and corresponding accession numbers
-		nameChart = list()
-		#read in nameChart
-		with open(chartName, "r") as fh:
-			for line in fh:
-				line = line.strip()
-				line = line.split("\t")
-				#remove space from binomial name
-				name = line[0]
-				name = name.split(" ")
-				name = '_'.join(name)
-				nameChart.append(tuple([name, line[1]]))
-		#move into target folder
-		os.chdir(targetFolder)
-		for file in os.listdir():
-			#check that file type is correct
-			if file.endswith(".clean.fasta"):
-				#find correct name in chart
-				for entry in nameChart:
-					if file.startswith(entry[1]):
-						os.rename(file, entry[0] + "_" + entry[1] + ".clean.fasta")
-		#return to starting folder
-		os.chdir(os.path.dirname(os.getcwd()))
-	else:
-		print("Cannot rename files")
 
 
-#method to query the user
-def yesNo(question):
-	#variable to hold user input
-	userInput = ""
-	while True:
-		print(question)
-		userInput = input().upper()
-		if userInput == "Y" or userInput == "N":
-			break
-		else:
-			print("Invalid input")
-	if userInput == "Y":
-		return(True)
-	elif userInput == "N":
-		return(False)
 
-#method to receive and validate folder name from user
+
+
+
+#======================================================NOTE=======================: Finished with renamer, need to make geneTree method work
 def folderQuery(action):
 	#variable to hold folder name
 	targetFolder = ""
@@ -306,7 +204,32 @@ def folderQuery(action):
 		print("Resart the program and select 'R) Rename genome files using name chart' ")
 	return(targetFolder)
 
-
+#method for renaming files
+#only works with tab-delimited name charts in the format name [tab] accession
+def fileRename(chartName, targetFolder):
+	#list to hold the names and corresponding accession numbers
+	nameChart = list()
+	#read in nameChart
+	with open(chartName, "r") as fh:
+		for line in fh:
+			line = line.strip()
+			line = line.split("\t")
+			#remove space from binomial name
+			name = line[0]
+			name = name.split(" ")
+			name = '_'.join(name)
+			nameChart.append(tuple([name, line[1]]))
+	#move into target folder
+	os.chdir(targetFolder)
+	for file in os.listdir():
+		#check that file type is correct
+		if file.endswith(".clean.fasta"):
+			#find correct name in chart
+			for entry in nameChart:
+				if file.startswith(entry[1]):
+					os.rename(file, entry[0] + "_" + entry[1] + ".clean.fasta")
+	#return to starting folder
+	os.chdir(os.path.dirname(os.getcwd()))
 
 #method for writing output files that can be used to make a gene tree
 def geneTree(genomeFileList, targetFolder):
@@ -518,14 +441,6 @@ class GeneFile:
 	#class method for retruning gene types list
 	def getGeneTypes(self):
 		return(self.geneTypes)
-
-	#class method for setting species
-	def setSpecies(self, input):
-		self.species = input
-
-	#class method for returning species
-	def getSpecies(self):
-		return(self.species)
 
 	#class method for refromating and returning genes to allow for gene tree friendly output
 	def geneTreeFormat(self):
