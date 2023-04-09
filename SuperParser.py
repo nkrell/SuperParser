@@ -37,6 +37,7 @@ def main():
 		print("6) Output cleaned Genes")
 		print("7) Output gene types")
 		print("8) Output gene counts")
+		print("C) Output .csv chart of gene counts")
 		print("T) Output files that can be used to make a gene tree")
 		print("R) Rename genome files using name chart")
 		print("Q) Quit program")
@@ -147,7 +148,17 @@ def main():
 				for entry in genomeFileList:
 					entry.printGeneCounts()
 
-
+		#Output .csv chart of gene counts
+		elif userInput == "C":
+			test = genomeFileList[0].getGeneCounts()
+			if len(genomeFileList) == 0:
+				print("No data has been read in")
+			if len(text) == 0:
+				print("Gene counts have not been generated yet")
+				print("Use '4) Get gene counts' first")
+			else:
+				pass 
+				#do the thing---------------------------------------------------------------------------------
 
 
 		#Output files that can be used to make a gene tree	
@@ -209,6 +220,8 @@ def main():
 			print('\n')
 			print("Invalid input")
 
+def printCSV():
+	#code goes here
 
 
 def folderQuery(action):
