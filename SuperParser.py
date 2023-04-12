@@ -5,6 +5,8 @@ import time
 def main():
 	#list to hold all data that will be read it
 	genomeFileList = list()
+	#variable to hold the name of the folder for later use
+	folderName = ""
 # 	   _____                                 _____                                     
  #  / ____|                               |  __ \                                    
  # | (___    _   _   _ __     ___   _ __  | |__) |   __ _   _ __   ___    ___   _ __ 
@@ -51,6 +53,7 @@ def main():
 		#Read in OR pipeline output files
 		elif userInput == "1": 
 			targetFolder = folderQuery("parsing")
+			folderName = targetFolder
 			#navigate into target folder
 			os.chdir(targetFolder) #IN 1 <-------
 			for file in os.listdir():
@@ -149,20 +152,20 @@ def main():
 					entry.printGeneCounts()
 
 		#Output .csv chart of gene counts
-		elif userInput == "C":
+		elif userInput == "C" or userInput == "c":
 			test = genomeFileList[0].getGeneCounts()
 			if len(genomeFileList) == 0:
 				print("No data has been read in")
-			if len(text) == 0:
+			if len(test) == 0:
 				print("Gene counts have not been generated yet")
 				print("Use '4) Get gene counts' first")
 			else:
-				pass 
+				writeCSV(genomeFileList, folderName)
 				#do the thing---------------------------------------------------------------------------------
 
 
 		#Output files that can be used to make a gene tree	
-		elif userInput == "T":
+		elif userInput == "T" or userInput == "t":
 			targetFolder = ""
 			if len(genomeFileList) == 0:
 				print("No data has been read in")
@@ -185,7 +188,7 @@ def main():
 				geneTree(genomeFileList, targetFolder)
 			
 		#Rename genome files using name chart
-		elif userInput == "R":
+		elif userInput == "R" or userInput == "r":
 			yesNo = ""
 			while True:
 				print("Is there a name chart in the directory with the format 'Name [Tab] Accession' ? (y/n)")
@@ -220,8 +223,81 @@ def main():
 			print('\n')
 			print("Invalid input")
 
-def printCSV():
-	#code goes here
+def writeCSV(genomeFileList, folderName):
+	#list to hold all the possible types that will appere in the table
+	allTypesList = list()
+	#list to hold the sorted contents of allTypesList
+	sortedList = list()
+	#list of types that have to be ignore
+	ignoreList = ["OR1_CODING", "OR3_CODING", "OR7_CODING", 
+					"OR1_PSEUDOGENE", "OR3_PSEUDOGENE", "OR7_PSEUDOGENE",
+					"OR2_CODING", "OR13_CODING",
+					"OR2_PSEUDOGENE", "OR13_PSEUDOGENE",
+					"OR5_CODING", "OR8_CODING", "OR9_CODING",
+					"OR5_PSEUDOGENE", "OR8_PSEUDOGENE", "OR9_PSEUDOGENE",]
+	#find all possible types
+	for entry in genomeFileList:
+		for geneType in entry.getGeneTypes():
+			if geneType not in allTypesList and geneType not in ignoreList:
+				allTypesList.append(geneType)
+	#add grouped families
+	allTypesList.append("OR1/3/7_CODING")
+	allTypesList.append("OR1/3/7_PSEUDOGENE")
+	allTypesList.append("OR2/13_CODING")
+	allTypesList.append("OR2/13_PSEUDOGENE")
+	allTypesList.append("OR5/8/9_CODING")
+	allTypesList.append("OR5/8/9_PSEUDOGENE")
+	#sort allTypesList into sortedList
+	allTypesList.sort()
+	#merge counts in genefile objects
+	for entry in genomeFileList:
+		entry.mergeFamilyCounts()
+	for entry in allTypesList:
+		print(entry)
+	#begin writing .csv file
+	newFile = open(folderName + ".csv", "w")
+	#write column names
+	newFile.write("Organism, ")
+	for i in range(0, len(allTypesList)):
+		#no comma at the end of the header
+		if i == len(allTypesList) - 1:
+			newFile.write(allTypesList[i])
+		else:
+			newFile.write(allTypesList[i] + ", ")
+	#end line
+	newFile.write("\n")
+	#fill in table
+	for entry in genomeFileList:
+		#write organsism name
+		#species could be used here instead <---------------
+		
+		newFile.write(entry.getFileName() + ", ")
+		for i in range(0, len(allTypesList)):
+			#flag variable to determine if something was printed or not
+			printed = False
+			for count in entry.getGeneCounts():
+				if allTypesList[i] == count[0]:
+					if i == len(allTypesList) - 1:
+						newFile.write(str(count[1]))
+						printed = True
+					else:
+						newFile.write(str(count[1]) + ", ")
+						printed = True
+			if printed == False:
+				if i == len(allTypesList) - 1:
+					newFile.write("0")
+				else:
+					newFile.write("0, ")
+
+		
+
+		#end line
+		newFile.write("\n")
+	#close file
+	newFile.close()
+
+	for entry in genomeFileList:
+		entry.mergeFamilyCounts()
 
 
 def folderQuery(action):
@@ -527,10 +603,68 @@ class GeneFile:
 			#add each count and genetype to the counts list
 			self.geneCounts.append(tuple([geneType, counter]))
 
-
-
-
-
+	#class method for merging the 1/3/7, 2/13, 5,8,9 familes in the gene counts list
+	def mergeFamilyCounts(self):
+		#temp variables to hold the relevent values before merging
+		or1 = 0
+		or3 = 0
+		or7 = 0
+		or2 = 0
+		or13 = 0
+		or5 = 0
+		or8 = 0
+		or9 = 0
+		#for coding genes
+		for count in self.geneCounts:
+			if count[0] == "OR1_CODING":
+				or1 = count[1]
+			if count[0] == "OR3_CODING":
+				or3 = count[1]
+			if count[0] == "OR7_CODING":
+				or7 = count[1]
+			if count[0] == "OR2_CODING":
+				or2 = count[1]
+			if count[0] == "OR13_CODING":
+				or13 = count[1]
+			if count[0] == "OR5_CODING":
+				or5 = count[1]
+			if count[0] == "OR8_CODING":
+				or8 = count[1]
+			if count[0] == "OR9_CODING":
+				or9 = count[1]
+		self.geneCounts.append(tuple(["OR1/3/7_CODING", or1 + or3 + or7]))
+		self.geneCounts.append(tuple(["OR2/13_CODING", or2 + or13]))
+		self.geneCounts.append(tuple(["OR5/8/9_CODING", or5 + or8 + or9]))
+		#reset variables
+		or1 = 0
+		or3 = 0
+		or7 = 0
+		or2 = 0
+		or13 = 0
+		or5 = 0
+		or8 = 0
+		or9 = 0
+		#for pseudogenes
+		for count in self.geneCounts:
+			if count[0] == "OR1_PSEUDOGENE":
+				or1 = count[1]
+			if count[0] == "OR3_PSEUDOGENE":
+				or3 = count[1]
+			if count[0] == "OR7_PSEUDOGENE":
+				or7 = count[1]
+			if count[0] == "OR2_PSEUDOGENE":
+				or2 = count[1]
+			if count[0] == "OR13_PSEUDOGENE":
+				or13 = count[1]
+			if count[0] == "OR5_PSEUDOGENE":
+				or5 = count[1]
+			if count[0] == "OR8_PSEUDOGENE":
+				or8 = count[1]
+			if count[0] == "OR9_PSEUDOGENE":
+				or9 = count[1]
+		self.geneCounts.append(tuple(["OR1/3/7_PSEUDOGENE", or1 + or3 + or7]))
+		self.geneCounts.append(tuple(["OR2/13_PSEUDOGENE", or2 + or13]))
+		self.geneCounts.append(tuple(["OR5/8/9_PSEUDOGENE", or5 + or8 + or9]))
 
 
 
